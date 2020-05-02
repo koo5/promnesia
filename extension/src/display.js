@@ -3,7 +3,7 @@ import type {Url, Src, Locator} from './common';
 import {format_dt, Methods, unwrap, safeSetInnerHTML} from './common';
 
 // TODO need to pass document??
-
+import anchorme from 'anchorme'
 
 export function _fmt(dt: Date): [string, string] {
     // TODO if it's this year, do not display year?
@@ -131,10 +131,13 @@ export class Binder {
                 ctx = context.substring(HTML_MARKER.length)
                 safeSetInnerHTML(ctx_c, ctx);
             } else { // plaintext
-                for (const line of ctx.split('\n')) {
-                    tchild(ctx_c, line)
-                    child(ctx_c, 'br')
-                }
+                console.log("ANCHOR!!!")
+                const res = anchorme(ctx)
+                safeSetInnerHTML(ctx_c, res)
+                // for (const line of ctx.split('\n')) {
+                //     tchild(ctx_c, line)
+                //     child(ctx_c, 'br')
+                // }
             }
         }
 

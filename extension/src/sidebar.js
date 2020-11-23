@@ -23,6 +23,9 @@ const SIDEBAR_ACTIVE = 'promnesia';
 
 const doc = document;
 
+var promnesia_highlight_data = [];
+var promnesia_dom_change_observer_timer = undefined;
+
 // TODO think about 'show dots' and 'search' icons -- maybe only show them for android?
 class Sidebar {
     body: HTMLBodyElement;
@@ -433,6 +436,7 @@ async function* _bindSidebarData(response: Visits) {
             // todo this might compete for execution with the sidebar rendering...
             // later maybe integrate it in the yield mechanism..
             setTimeout(() => tryHighlight(ctx, idx1, v))
+            promnesia_highlight_data.push({'ctx':ctx, 'idx1':idx1, 'v':v})
         }
 
         // TODO maybe shouldn't attach immediately? not sure
@@ -507,6 +511,7 @@ async function* _bindSidebarData(response: Visits) {
             relative: false,
         });
     }
+    initializeDomChangeObserver();
 }
 
 async function bindSidebarData(response: Visits) {
@@ -559,3 +564,40 @@ chrome.runtime.onMessage.addListener((msg: any, sender: chrome$MessageSender) =>
 
 // TODO hmm maybe I don't need any of this iframe crap??
 // https://stackoverflow.com/questions/5132488/how-to-insert-script-into-html-head-dynamically-using-javascript
+
+
+function initializeDomChangeObserver()
+{
+    /* as per https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver */
+
+    // Options for the observer (which mutations to observe)
+    const config = {childList: true, subtree: true};
+
+    // Callback function to execute when mutations are observed
+    const callback = function (mutationsList, observer)
+    {
+        // Use traditional 'for loops' for IE 11
+        for (const mutation of mutationsList)
+        {
+            if (mutation.type === 'childList')
+            {
+                console.log('A child node has been added or removed.');
+                if (promnesia_dom_change_observer_timer !== undefined)
+                    clearTimeout(promnesia_dom_change_observer_timer);
+                promnesia_dom_change_observer_timer = setTimeout(() => {
+                    promnesia_highlight_data.forEach(({ctx, idx1, v}) =>
+                        tryHighlight(ctx, idx1, v))
+                }, 100);
+            }
+        }
+    };
+
+    // Create an observer instance linked to the callback function
+    const observer = new MutationObserver(callback);
+
+    // Start observing the target node for configured mutations
+    observer.observe(document, config);
+
+    // Later, you can stop observing
+    //observer.disconnect();
+}
